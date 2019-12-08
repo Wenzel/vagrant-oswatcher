@@ -1,0 +1,65 @@
+---
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: force APT cache update
+      apt:
+        update_cache: yes
+
+  tasks:
+    - name: install tools
+      package:
+        name: "{{ item }}"
+      with_items:
+        - git
+
+    - name: ensure submodules are initialized
+      command: git submodule update --init
+      args:
+        chdir: "{{ oswatcher_path }}"
+      become: false
+
+    - name: install OSWatcher system dependencies
+      package:
+        name: "{{ item }}"
+      with_items:
+        - virtualenv
+        - python3-virtualenv
+        - libguestfs0
+        - libguestfs-dev
+        - python3-guestfs
+        - python3-dev
+        - pkg-config
+        - libvirt-dev
+
+    - name: create oswatcher virtualenv
+      command: virtualenv --system-site-packages -p python3 venv
+      args:
+        chdir: /home/vagrant
+        creates: venv
+      become: false
+
+    - name: install oswatcher pip dependencies
+      command: ./venv/bin/pip install -r {{ oswatcher_path }}/requirements.txt
+      args:
+        chdir: /home/vagrant
+      become: false
+
+    - name: install XFCE desktop
+      package:
+        name: "{{ item }}"
+      with_items:
+        - xfce4
+
+    - name: install virt-manager and libvirt
+      package:
+        name: "{{ item }}"
+      with_items:
+        - virt-manager
+        - libvirt-daemon-system
+
+    - name: start libvirt
+      service:
+        name: libvirtd
+        state: started
+        enabled: yes
