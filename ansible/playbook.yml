@@ -31,6 +31,10 @@
         - python3-dev
         - pkg-config
         - libvirt-dev
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10
 
     - name: create oswatcher virtualenv
       command: virtualenv --system-site-packages -p python3 venv
