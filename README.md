@@ -10,7 +10,7 @@ Vagrant environment for OSWatcher
 
     git clone https://github.com/Wenzel/vagrant-oswatcher
 
-Edit `vagrant-oswatcher` and set the local path to [`oswatcher`](https://github.com/Wenzel/oswatcher)'s repo
+Edit `vagrant-oswatcher/Vagrantfile` and set the local path to [`oswatcher`](https://github.com/Wenzel/oswatcher)'s repo
 
 ~~~Ruby
 oswatcher_path = "/path/to/oswatcher"
