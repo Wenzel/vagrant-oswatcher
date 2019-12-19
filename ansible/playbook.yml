@@ -79,6 +79,11 @@
         src: /tmp/packer.zip
         dest: /usr/local/bin
 
+    - name: fix permissions on kvm node
+      file:
+        path: /dev/kvm
+        mode: 0666
+
     - name: clone packer templates
       git:
         repo: https://github.com/Wenzel/packer-templates
