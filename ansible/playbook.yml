@@ -78,6 +78,7 @@
       unarchive:
         src: /tmp/packer.zip
         dest: /usr/local/bin
+        remote_src: yes
 
     - name: fix permissions on kvm node
       file:
