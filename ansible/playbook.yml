@@ -54,6 +54,10 @@
         name: "{{ item }}"
       with_items:
         - xfce4
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10
 
     - name: install virt-manager and libvirt
       package:
@@ -61,6 +65,10 @@
       with_items:
         - virt-manager
         - libvirt-daemon-system
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10
 
     - name: start libvirt
       service:
@@ -80,6 +88,11 @@
         dest: /usr/local/bin
         remote_src: yes
 
+    - name: remove packer.zip
+      win_file:
+        path: /tmp/packer.zip
+        state: absent
+
     - name: fix permissions on kvm node
       file:
         path: /dev/kvm
@@ -96,3 +109,26 @@
       args:
         chdir: /home/vagrant/packer-templates
       become: false
+
+    - name: get qcow name
+      find:
+        path: "/home/vagrant/packer-templates/output-qemu"
+      register: qemu_output
+
+    - name: install import_libvirt.py deps
+      package:
+        name: "{{ item }}"
+      with_items:
+        - python3-docopt
+        - python3-lxml
+        - python3-libvirt
+        - libvirt-dev
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10
+
+    - name: Import Windows XP in Libvirt
+      win_command: "./import_libvirt.py --open-vnc {{ qemu_output.files[0].path }}"
+      args:
+        chdir: /home/vagrant/packer-templates
