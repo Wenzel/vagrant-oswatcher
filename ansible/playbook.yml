@@ -25,15 +25,16 @@
         - python3-apt
         - software-properties-common
 
-    - name: add repo for Python 3.7
-      apt_repository:
-        repo: ppa:deadsnakes/ppa
+    # - name: add repo for Python 3.7
+    #   apt_repository:
+    #     repo: ppa:deadsnakes/ppa
 
-    - name: install python 3.7
-      package:
-        name: "{{ item }}"
-      with_items:
-        - python3.7
+    # - name: install python 3.7
+    #   package:
+    #     name: "{{ item }}"
+    #   with_items:
+    #     - python3.7
+    #     - python3.7-dev
 
     - name: ensure submodules are initialized
       command: git submodule update --init
@@ -49,6 +50,7 @@
         - python3-virtualenv
         - libguestfs0
         - libguestfs-dev
+        - libguestfs-tools
         - python3-guestfs
         - python3-dev
         - pkg-config
@@ -59,7 +61,7 @@
       delay: 10
 
     - name: create oswatcher virtualenv
-      command: virtualenv --system-site-packages -p python3 venv
+      command: virtualenv --system-site-packages -p python3.7 venv
       args:
         chdir: /home/vagrant
         creates: venv
@@ -130,6 +132,7 @@
       git:
         repo: https://github.com/Wenzel/packer-templates
         dest: /home/vagrant/packer-templates
+        version: qemu
       become: false
 
     # - name: Build Windows XP
@@ -179,7 +182,14 @@
       become: false
 
     - name: Import Windows XP in Libvirt
-      command: "./import_libvirt.py --uri qemu:///session --open-vnc --pool oswatcher /home/vagrant/packer-templates/winxp.qcow2"
+      command: "./import_libvirt.py --uri qemu:///session --open-vnc --pool oswatcher --pool-path /home/vagrant/images /home/vagrant/packer-templates/winxp.qcow2"
       args:
         chdir: /home/vagrant/packer-templates
       become: false
+
+    - name: enable qemu:///session oswatcher pool
+      command: virsh -c qemu:///session pool-refresh oswatcher
+      become: false
+
+    - name: read access on linux image
+      shell: 'chmod 644 /boot/vmlinuz*'
