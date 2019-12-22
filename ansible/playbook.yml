@@ -6,9 +6,15 @@
     # - name: check for virtualization extensions in cpuinfo
     #   shell: egrep '(vmx|svm)' /proc/cpuinfo
       
-    - name: force APT cache update
+    - name: system upgrade
       apt:
         update_cache: yes
+        upgrade: dist
+
+    - name: restart systemd-resolved
+      service:
+        name: systemd-resolved
+        state: restarted
 
   tasks:
     - name: install tools
@@ -16,6 +22,18 @@
         name: "{{ item }}"
       with_items:
         - git
+        - python3-apt
+        - software-properties-common
+
+    - name: add repo for Python 3.7
+      apt_repository:
+        repo: ppa:deadsnakes/ppa
+
+    - name: install python 3.7
+      package:
+        name: "{{ item }}"
+      with_items:
+        - python3.7
 
     - name: ensure submodules are initialized
       command: git submodule update --init
@@ -141,7 +159,7 @@
         - libvirt-dev
       register: result
       until: result is succeeded
-      retries: 3
+      retries: 10
       delay: 10
 
     - name: define qemu:///session oswatcher pool
