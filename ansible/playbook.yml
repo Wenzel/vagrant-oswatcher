@@ -2,6 +2,10 @@
 - hosts: all
   become: true
   pre_tasks:
+    # vagrant bug: https://github.com/hashicorp/vagrant/issues/11279
+    # - name: check for virtualization extensions in cpuinfo
+    #   shell: egrep '(vmx|svm)' /proc/cpuinfo
+      
     - name: force APT cache update
       apt:
         update_cache: yes
@@ -76,27 +80,33 @@
         state: started
         enabled: yes
 
-    - name: download Packer
-      get_url:
-        url: https://releases.hashicorp.com/packer/1.4.5/packer_1.4.5_linux_amd64.zip
-        dest: /tmp/packer.zip
-      become: false
+    - name: add current user in libvirt groups
+      user:
+        name: vagrant
+        groups: kvm,libvirt-qemu,libvirt
+        append: yes
 
-    - name: extract Packer
-      unarchive:
-        src: /tmp/packer.zip
-        dest: /usr/local/bin
-        remote_src: yes
+    # - name: download Packer
+    #   get_url:
+    #     url: https://releases.hashicorp.com/packer/1.4.5/packer_1.4.5_linux_amd64.zip
+    #     dest: /tmp/packer.zip
+    #   become: false
 
-    - name: remove packer.zip
-      win_file:
-        path: /tmp/packer.zip
-        state: absent
+    # - name: extract Packer
+    #   unarchive:
+    #     src: /tmp/packer.zip
+    #     dest: /usr/local/bin
+    #     remote_src: yes
 
-    - name: fix permissions on kvm node
-      file:
-        path: /dev/kvm
-        mode: 0666
+    # - name: remove packer.zip
+    #   file:
+    #     path: /tmp/packer.zip
+    #     state: absent
+
+    # - name: fix permissions on kvm node
+    #   file:
+    #     path: /dev/kvm
+    #     mode: 0666
 
     - name: clone packer templates
       git:
@@ -104,16 +114,22 @@
         dest: /home/vagrant/packer-templates
       become: false
 
-    - name: Build Windows XP
-      command: packer build -var-file winxp.json windows.json
-      args:
-        chdir: /home/vagrant/packer-templates
-      become: false
+    # - name: Build Windows XP
+    #   command: packer build -var-file winxp.json windows.json
+    #   args:
+    #     chdir: /home/vagrant/packer-templates
+    #   become: false
 
-    - name: get qcow name
-      find:
-        path: "/home/vagrant/packer-templates/output-qemu"
-      register: qemu_output
+    # - name: get qcow name
+    #   find:
+    #     path: "/home/vagrant/packer-templates/output-qemu"
+    #   register: qemu_output
+
+    - name: download winxp image
+      get_url:
+        url: https://www.dropbox.com/s/0zycew5u3xnf8m7/winxp.qcow2?dl=1
+        dest: /home/vagrant/packer-templates/winxp.qcow2
+      become: false
 
     - name: install import_libvirt.py deps
       package:
@@ -128,7 +144,24 @@
       retries: 3
       delay: 10
 
+    - name: define qemu:///session oswatcher pool
+      command: virsh -c qemu:///session pool-define-as oswatcher --type dir --target /home/vagrant/images
+      become: false
+
+    - name: enable qemu:///session oswatcher pool
+      command: virsh -c qemu:///session pool-autostart oswatcher
+      become: false
+
+    - name: enable qemu:///session oswatcher pool
+      command: virsh -c qemu:///session pool-build oswatcher
+      become: false
+
+    - name: enable qemu:///session oswatcher pool
+      command: virsh -c qemu:///session pool-start oswatcher
+      become: false
+
     - name: Import Windows XP in Libvirt
-      win_command: "./import_libvirt.py --open-vnc {{ qemu_output.files[0].path }}"
+      command: "./import_libvirt.py --uri qemu:///session --open-vnc --pool oswatcher /home/vagrant/packer-templates/winxp.qcow2"
       args:
         chdir: /home/vagrant/packer-templates
+      become: false
