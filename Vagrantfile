@@ -1,5 +1,5 @@
 Vagrant.configure("2") do |config|
-    config.vm.box = "generic/ubuntu1804"
+    config.vm.box = "generic/ubuntu1904"
     config.vm.box_version = "2.0.6"
     config.vm.define "oswatcher"
     # OSWatcher local git repo
